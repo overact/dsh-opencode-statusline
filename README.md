@@ -8,6 +8,8 @@ Shows a status block at the bottom of the web app's sidebar:
 - 上下文 — context-window usage bar (from dsh's `contextPressure` session projection)
 - Go 用量 — [OpenCode Go](https://opencode.ai/go) subscription usage (rolling / weekly / monthly, colored bars + reset countdown)
 
+![screenshot](https://raw.githubusercontent.com/Mcd0LUO/dsh-opencode-statusline/main/assets/screenshot.png)
+
 The Go usage is fetched server-side from the OpenCode Go API; the API key is read
 from the dsh credentials service (`OPENCODE_API_KEY`), never exposed to the browser.
 
