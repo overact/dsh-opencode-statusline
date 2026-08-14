@@ -2,6 +2,10 @@
   "name": "@mcd0luo/dsh-opencode-statusline",
   "version": "0.2.1",
   "description": "OpenCode Go statusline for dsh web: context usage, Go subscription usage, working directory",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mcd0LUO/dsh-opencode-statusline.git"
+  },
   "type": "module",
   "main": "lib/index.js",
   "exports": {
