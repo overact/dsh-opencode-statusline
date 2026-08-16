@@ -11,6 +11,33 @@ if (typeof document !== "undefined" && document.querySelector("style[data-plugin
 
 const h = react.createElement;
 
+// ---- i18n: follow the active document language (zh/en) ----
+const STR = {
+  zh: {
+    reset: '已重置',
+    goUsage: 'Go 用量 …',
+    rolling: '滚动',
+    weekly: '周',
+    monthly: '月',
+    dir: '目录',
+    context: '上下文',
+    contextEllipsis: '上下文 …',
+  },
+  en: {
+    reset: 'reset',
+    goUsage: 'Go usage …',
+    rolling: 'Rolling',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    dir: 'Directory',
+    context: 'Context',
+    contextEllipsis: 'Context …',
+  },
+};
+const currentLang = () => (typeof document !== "undefined" && document.documentElement.lang && String(document.documentElement.lang).toLowerCase().startsWith("en") ? "en" : "zh");
+const t = (key) => (STR[currentLang()] && STR[currentLang()][key]) || key;
+
+
 function fmt(n) {
 	if (n == null || !Number.isFinite(n)) return "?";
 	if (n >= 1e9) return (n / 1e9).toFixed(1) + "b";
@@ -40,7 +67,7 @@ function relReset(iso) {
 	if (!iso) return null;
 	const diff = new Date(iso).getTime() - Date.now();
 	if (!Number.isFinite(diff)) return null;
-	if (diff <= 0) return "已重置";
+	if (diff <= 0) return t('reset');
 	const mins = Math.round(diff / 60000);
 	if (mins < 60) return mins + "m";
 	const hrs = Math.round(diff / 3600000);
@@ -64,7 +91,7 @@ function Bar({ pct, segs }) {
 
 function GoUsage({ usage }) {
 	const u = usage && usage.usage;
-	if (!u) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, "Go 用量 …"));
+	if (!u) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, t('goUsage')));
 	const seg = (label, w) => {
 		if (!w || typeof w.percent !== "number") return null;
 		return h("span", { className: "dsl-usage-bit", key: label }, [
@@ -74,8 +101,8 @@ function GoUsage({ usage }) {
 			h("span", { className: "dsl-reset" }, "·" + (relReset(w.resetsAt) || "?"))
 		]);
 	};
-	const bits = [seg("滚动", u.rolling), seg("周", u.weekly), seg("月", u.monthly)].filter(Boolean);
-	if (bits.length === 0) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, "Go 用量 …"));
+	const bits = [seg(t('rolling'), u.rolling), seg(t('weekly'), u.weekly), seg(t('monthly'), u.monthly)].filter(Boolean);
+	if (bits.length === 0) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, t('goUsage')));
 	return h("div", { className: "dsl-usage" }, bits);
 }
 
@@ -110,15 +137,15 @@ function StatuslineBlock({ wide, useSessions }) {
 	if (!wide) return h("div", { className: "dsl-root" }, h("div", { className: "dsl-line" }, pct === null ? h("span", { className: "dsl-muted" }, "·") : h("span", { className: "dsl-pct " + tone(pct) }, pct + "%")));
 
 	const cwdLine = cwd === void 0 || cwd === "" ? h("span", { className: "dsl-muted" }, "—") : h("span", { className: "dsl-cwd", title: cwd }, truncatePath(cwd, 40));
-	const contextLine = pct === null ? h("span", { className: "dsl-muted" }, "上下文 …") : [
+	const contextLine = pct === null ? h("span", { className: "dsl-muted" }, t('contextEllipsis')) : [
 		h(Bar, { pct, segs: 10, key: "bar" }),
 		h("span", { className: "dsl-pct " + tone(pct), key: "pct" }, pct + "%"),
 		h("span", { className: "dsl-reset", key: "num" }, fmt(usedTokens) + "/" + fmt(contextWindow))
 	];
 
 	return h("div", { className: "dsl-root" }, [
-		h("div", { className: "dsl-line", key: "cwd" }, [h("span", { className: "dsl-label" }, "目录"), cwdLine]),
-		h("div", { className: "dsl-line", key: "ctx" }, [h("span", { className: "dsl-label" }, "上下文"), contextLine]),
+		h("div", { className: "dsl-line", key: "cwd" }, [h("span", { className: "dsl-label" }, t('dir')), cwdLine]),
+		h("div", { className: "dsl-line", key: "ctx" }, [h("span", { className: "dsl-label" }, t('context')), contextLine]),
 		h(GoUsage, { usage, key: "go" })
 	]);
 }
