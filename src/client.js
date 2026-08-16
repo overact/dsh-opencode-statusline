@@ -16,6 +16,7 @@ const STR = {
   zh: {
     reset: '已重置',
     goUsage: 'Go 用量 …',
+    goUnavailable: 'Go 用量不可用',
     rolling: '滚动',
     weekly: '周',
     monthly: '月',
@@ -26,6 +27,7 @@ const STR = {
   en: {
     reset: 'reset',
     goUsage: 'Go usage …',
+    goUnavailable: 'Go usage unavailable',
     rolling: 'Rolling',
     weekly: 'Weekly',
     monthly: 'Monthly',
@@ -89,9 +91,9 @@ function Bar({ pct, segs }) {
 	return h("span", { className: "dsl-bar" }, cells);
 }
 
-function GoUsage({ usage }) {
+function GoUsage({ usage, error }) {
 	const u = usage && usage.usage;
-	if (!u) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, t('goUsage')));
+	if (!u) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, error ? t('goUnavailable') : t('goUsage')));
 	const seg = (label, w) => {
 		if (!w || typeof w.percent !== "number") return null;
 		return h("span", { className: "dsl-usage-bit", key: label }, [
@@ -102,7 +104,7 @@ function GoUsage({ usage }) {
 		]);
 	};
 	const bits = [seg(t('rolling'), u.rolling), seg(t('weekly'), u.weekly), seg(t('monthly'), u.monthly)].filter(Boolean);
-	if (bits.length === 0) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, t('goUsage')));
+	if (bits.length === 0) return h("div", { className: "dsl-usage" }, h("span", { className: "dsl-muted" }, error ? t('goUnavailable') : t('goUsage')));
 	return h("div", { className: "dsl-usage" }, bits);
 }
 
@@ -116,20 +118,33 @@ function StatuslineBlock({ wide, useSessions }) {
 	const pct = usedTokens !== void 0 && contextWindow !== void 0 ? Math.min(100, Math.round((usedTokens / contextWindow) * 100)) : null;
 
 	const [usage, setUsage] = react.useState(null);
+	const [usageError, setUsageError] = react.useState(false);
 	react.useEffect(() => {
 		let alive = true;
+		let controller = null;
 		const tick = () => {
-			fetch("/api/go-usage", { cache: "no-store" })
+			if (controller) controller.abort();
+			controller = new AbortController();
+			fetch("/api/go-usage", { cache: "no-store", signal: controller.signal })
 				.then((res) => res.ok ? res.json() : null)
 				.then((data) => {
-					if (alive && data !== null) setUsage(data);
+					if (!alive) return;
+					if (data !== null && data.error === void 0) {
+						setUsage(data);
+						setUsageError(false);
+					} else {
+						setUsageError(true);
+					}
 				})
-				.catch(() => {});
+				.catch((err) => {
+					if (alive && err && err.name !== "AbortError") setUsageError(true);
+				});
 		};
 		tick();
 		const timer = window.setInterval(tick, 60000);
 		return () => {
 			alive = false;
+			if (controller) controller.abort();
 			window.clearInterval(timer);
 		};
 	}, []);
@@ -146,7 +161,7 @@ function StatuslineBlock({ wide, useSessions }) {
 	return h("div", { className: "dsl-root" }, [
 		h("div", { className: "dsl-line", key: "cwd" }, [h("span", { className: "dsl-label" }, t('dir')), cwdLine]),
 		h("div", { className: "dsl-line", key: "ctx" }, [h("span", { className: "dsl-label" }, t('context')), contextLine]),
-		h(GoUsage, { usage, key: "go" })
+		h(GoUsage, { usage, error: usageError, key: "go" })
 	]);
 }
 
